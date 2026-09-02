@@ -307,16 +307,19 @@ def require_auth(session_token: str | None = Cookie(default=None)) -> dict:
 
 
 def _set_session_cookie(response: Response, request: Request, token: str) -> None:
+    # Detect whether the original request came over HTTPS via a proxy
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+    is_secure = forwarded_proto == "https" or request.url.scheme == "https"
+
     response.set_cookie(
         key=auth.SESSION_COOKIE_NAME,
         value=token,
         httponly=True,
         samesite="none",
-        secure=(request.url.scheme == "https"),
+        secure=is_secure,          # now correctly True on Render
         max_age=auth.SESSION_DURATION_HOURS * 3600,
         path="/",
     )
-
 
 @app.post("/api/auth/signup", response_model=UserOut)
 def signup(payload: SignupRequest, request: Request, response: Response):
