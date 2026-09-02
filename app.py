@@ -311,7 +311,7 @@ def _set_session_cookie(response: Response, request: Request, token: str) -> Non
         key=auth.SESSION_COOKIE_NAME,
         value=token,
         httponly=True,
-        samesite="lax",
+        samesite="none",
         secure=(request.url.scheme == "https"),
         max_age=auth.SESSION_DURATION_HOURS * 3600,
         path="/",
