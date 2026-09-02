@@ -26,8 +26,7 @@ from sqlalchemy.engine import Connection
 
 import analytics as analytics_module
 
-GROK_API_URL = "https://api.x.ai/v1/chat/completions"
-GROK_MODEL = "grok-4"
+GROQ_MODEL = "openai/gpt-oss-120b"
 DATASET_PERIOD = "2019-2020"
 
 # Bound how much prior conversation is ever sent to Grok — old turns are
@@ -343,7 +342,7 @@ def answer_question(
 ) -> tuple[str, str]:
     """Returns (answer_text, narrative_source)."""
     history = history or []
-    api_key = os.getenv("GROK_API_KEY") or os.getenv("XAI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return (
             _template_fallback_answer(question, retrieval_type, structured, evidence),
