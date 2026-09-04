@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMPDI/CIL — AI-Powered Geological &amp; Mining Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+/* ============================================================
+   1. DESIGN TOKENS — Government / PSU visual language
+   ============================================================ */
+:root{
+  --navy:#0b2545;
+  --navy-dark:#071a33;
+  --gov-blue:#123a6b;
+  --gov-blue-light:#1e5aa8;
+  --saffron:#d97a1f;
+  --saffron-light:#f2a94a;
+  --white:#ffffff;
+  --grey-50:#f4f6f8;
+  --grey-100:#e9edf1;
+  --grey-200:#dde3e9;
+  --grey-300:#c3cdd6;
+  --grey-500:#6b7a8d;
+  --grey-700:#3c4a5c;
+  --ink:#182634;
+  --success:#1e7d3c;
+  --success-bg:#e7f5eb;
+  --warning:#9a6300;
+  --warning-bg:#fdf1dc;
+  --error:#a72020;
+  --error-bg:#fbe7e7;
+  --info:#1e5aa8;
+  --info-bg:#e8f0fb;
+  --radius:4px;
+  --radius-lg:6px;
+  --shadow-sm:0 1px 2px rgba(11,37,69,.08);
+  --shadow-md:0 2px 10px rgba(11,37,69,.12);
+  --font: "Inter","Noto Sans","Segoe UI",Roboto,Arial,sans-serif;
+  --chart-1:#123a6b;--chart-2:#d97a1f;--chart-3:#1e7d3c;--chart-4:#9a3fb0;
+  --chart-5:#c23636;--chart-6:#1e9aa8;--chart-7:#6b4fa0;--chart-8:#b08a1e;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:var(--font);
+  background:var(--grey-50);
+  color:var(--ink);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--gov-blue-light);text-decoration:none;}
+a:hover{text-decoration:underline;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+h1,h2,h3,h4{margin:0 0 6px 0;color:var(--navy);font-weight:700;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--grey-300);border-radius:6px;}
+:focus-visible{outline:3px solid var(--saffron-light);outline-offset:1px;}
+
+/* ============================================================
+   2. LAYOUT SHELL
+   ============================================================ */
+#app{display:none;min-height:100vh;grid-template-rows:auto auto 1fr;}
+#app.active{display:grid;}
+
+.topbar{
+  background:linear-gradient(180deg,var(--navy) 0%,var(--navy-dark) 100%);
+  color:#fff;border-bottom:3px solid var(--saffron);
+}
+.topbar-inner{
+  max-width:1500px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;padding:8px 20px;gap:16px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.emblem{
+  width:42px;height:42px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:var(--navy);font-size:12px;border:2px solid var(--saffron-light);
+  flex-shrink:0;
+}
+.brand-text .l1{font-size:11px;opacity:.85;letter-spacing:.03em;}
+.brand-text .l2{font-size:15px;font-weight:700;}
+.brand-text .l3{font-size:11px;opacity:.75;}
+.topbar-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.status-pill{
+  display:flex;align-items:center;gap:6px;font-size:12px;background:rgba(255,255,255,.08);
+  padding:5px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.15);
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--grey-300);flex-shrink:0;}
+.dot.ok{background:#3fbf6a;box-shadow:0 0 0 3px rgba(63,191,106,.25);}
+.dot.bad{background:#e2564f;box-shadow:0 0 0 3px rgba(226,86,79,.25);}
+.dot.warn{background:#f2b53b;box-shadow:0 0 0 3px rgba(242,181,59,.25);}
+.icon-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:14px;position:relative;
+}
+.icon-btn:hover{background:rgba(255,255,255,.18);}
+.badge-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--saffron);border-radius:50%;}
+.user-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:5px 10px 5px 5px;border-radius:20px;border:1px solid rgba(255,255,255,.15);}
+.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--saffron);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.role-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.03em;}
+.role-badge.admin{background:var(--saffron-light);color:#4a2a00;}
+.role-badge.viewer{background:#cfe0f5;color:var(--navy);}
+select.lang-select{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 8px;font-size:12px;}
+select.lang-select option{color:#000;}
+
+.subbar{
+  background:#fff;border-bottom:1px solid var(--grey-200);
+}
+.subbar-inner{max-width:1500px;margin:0 auto;padding:8px 20px;font-size:13px;color:var(--grey-700);}
+.subbar b{color:var(--navy);}
+
+.shell{max-width:1500px;margin:0 auto;width:100%;display:flex;align-items:flex-start;gap:0;}
+.sidebar{
+  width:230px;flex-shrink:0;background:#fff;border-right:1px solid var(--grey-200);
+  min-height:calc(100vh - 92px);padding:14px 0;position:sticky;top:0;
+}
+.sidebar nav a{
+  display:flex;align-items:center;gap:10px;padding:10px 18px;color:var(--grey-700);
+  font-size:13.5px;font-weight:600;border-left:3px solid transparent;
+}
+.sidebar nav a:hover{background:var(--grey-50);text-decoration:none;color:var(--navy);}
+.sidebar nav a.active{background:var(--info-bg);color:var(--gov-blue);border-left-color:var(--saffron);}
+.sidebar .sec-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--grey-500);padding:14px 18px 6px;}
+.sidebar .icon{width:18px;text-align:center;flex-shrink:0;}
+.nav-lock{margin-left:auto;font-size:10px;color:var(--grey-500);}
+
+.main{flex:1;min-width:0;padding:22px 24px 60px;}
+.view{display:none;}
+.view.active{display:block;animation:fadein .15s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+.mobile-nav-toggle{display:none;}
+
+/* ============================================================
+   3. COMMON COMPONENTS
+   ============================================================ */
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
+.page-head p{margin:2px 0 0;color:var(--grey-700);font-size:13.5px;max-width:640px;}
+.breadcrumb{font-size:12px;color:var(--grey-500);margin-bottom:8px;}
+.breadcrumb a{color:var(--grey-500);}
+.breadcrumb .cur{color:var(--navy);font-weight:600;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;border:1px solid var(--grey-300);background:#fff;
+  color:var(--navy);padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;
+  transition:.12s;
+}
+.btn:hover{background:var(--grey-50);}
+.btn.primary{background:var(--gov-blue);border-color:var(--gov-blue);color:#fff;}
+.btn.primary:hover{background:var(--gov-blue-light);}
+.btn.saffron{background:var(--saffron);border-color:var(--saffron);color:#fff;}
+.btn.saffron:hover{background:var(--saffron-light);}
+.btn.danger{background:#fff;border-color:var(--error);color:var(--error);}
+.btn.danger:hover{background:var(--error-bg);}
+.btn.sm{padding:6px 11px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-icon-only{padding:7px 9px;}
+
+.card{background:#fff;border:1px solid var(--grey-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+.card-pad{padding:18px 20px;}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--grey-200);display:flex;justify-content:space-between;align-items:center;}
+.card-head h3{font-size:14.5px;}
+.card-head .hint{font-size:12px;color:var(--grey-500);font-weight:400;}
+
+.grid{display:grid;gap:16px;}
+.grid.kpi{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
+.grid.two{grid-template-columns:1fr 1fr;}
+.grid.three{grid-template-columns:repeat(3,1fr);}
+.grid.four{grid-template-columns:repeat(4,1fr);}
+@media(max-width:1100px){.grid.two,.grid.three,.grid.four{grid-template-columns:1fr 1fr;}}
+@media(max-width:640px){.grid.two,.grid.three,.grid.four{grid-template-columns:1fr;}}
+
+.kpi-card{background:#fff;border:1px solid var(--grey-200);border-left:4px solid var(--gov-blue);border-radius:var(--radius-lg);padding:14px 16px;box-shadow:var(--shadow-sm);}
+.kpi-card .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--grey-500);font-weight:700;}
+.kpi-card .value{font-size:26px;font-weight:800;color:var(--navy);margin-top:4px;}
+.kpi-card .sub{font-size:11.5px;color:var(--grey-500);margin-top:2px;}
+.kpi-card.c1{border-left-color:var(--chart-1);}
+.kpi-card.c2{border-left-color:var(--chart-2);}
+.kpi-card.c3{border-left-color:var(--chart-3);}
+.kpi-card.c4{border-left-color:var(--chart-4);}
+
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.02em;}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;}
+.badge.success{background:var(--success-bg);color:var(--success);}.badge.success::before{background:var(--success);}
+.badge.warning{background:var(--warning-bg);color:var(--warning);}.badge.warning::before{background:var(--warning);}
+.badge.error{background:var(--error-bg);color:var(--error);}.badge.error::before{background:var(--error);}
+.badge.info{background:var(--info-bg);color:var(--info);}.badge.info::before{background:var(--info);}
+.badge.neutral{background:var(--grey-100);color:var(--grey-700);}.badge.neutral::before{background:var(--grey-500);}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{
+  text-align:left;background:var(--grey-50);color:var(--grey-700);font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.03em;padding:10px 12px;border-bottom:2px solid var(--grey-200);
+  position:sticky;top:0;white-space:nowrap;
+}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--grey-100);vertical-align:middle;}
+tbody tr:hover{background:var(--grey-50);}
+.table-wrap{overflow-x:auto;border-radius:var(--radius-lg);}
+.table-scroll{max-height:520px;overflow-y:auto;}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:var(--grey-700);}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+.empty-state{text-align:center;padding:50px 20px;color:var(--grey-500);}
+.empty-state .icon{font-size:34px;margin-bottom:10px;}
+.empty-state .msg{font-size:14px;font-weight:600;color:var(--grey-700);}
+.empty-state .sub{font-size:12.5px;margin-top:4px;}
+
+.skeleton{background:linear-gradient(90deg,var(--grey-100) 25%,var(--grey-200) 37%,var(--grey-100) 63%);background-size:400% 100%;animation:sk 1.3s ease infinite;border-radius:4px;}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.sk-line{height:12px;margin:6px 0;}
+.sk-block{height:80px;}
+
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;}
+.toast{background:#fff;border-left:4px solid var(--info);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start;animation:slidein .18s ease;}
+.toast.success{border-left-color:var(--success);}
+.toast.error{border-left-color:var(--error);}
+.toast.warning{border-left-color:var(--warning);}
+@keyframes slidein{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:none;}}
+.toast .x{margin-left:auto;cursor:pointer;color:var(--grey-500);font-weight:700;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(11,37,69,.55);z-index:9000;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.active{display:flex;}
+.modal{background:#fff;border-radius:var(--radius-lg);max-width:760px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-md);}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--grey-200);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;}
+.modal-body{padding:20px;}
+.modal-close{background:none;border:none;font-size:20px;color:var(--grey-500);line-height:1;}
+
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--grey-200);margin-bottom:16px;flex-wrap:wrap;}
+.tab-btn{padding:9px 14px;font-size:13px;font-weight:600;color:var(--grey-700);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;}
+.tab-btn.active{color:var(--gov-blue);border-bottom-color:var(--saffron);}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--grey-700);margin-bottom:5px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--grey-300);border-radius:var(--radius);font-size:13.5px;background:#fff;color:var(--ink);
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gov-blue-light);}
+.field .err{color:var(--error);font-size:12px;margin-top:4px;}
+.field .help{color:var(--grey-500);font-size:11.5px;margin-top:4px;}
+
+.banner{border-radius:var(--radius-lg);padding:12px 16px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;}
+.banner.info{background:var(--info-bg);border:1px solid #b9d3f0;color:var(--gov-blue);}
+.banner.warning{background:var(--warning-bg);border:1px solid #f0d8a0;color:var(--warning);}
+.banner.error{background:var(--error-bg);border:1px solid #f0b8b8;color:var(--error);}
+.banner b{display:block;margin-bottom:2px;}
+
+.progress-track{background:var(--grey-100);border-radius:20px;height:8px;overflow:hidden;}
+.progress-fill{background:var(--gov-blue);height:100%;border-radius:20px;transition:width .3s;}
+.progress-fill.saffron{background:var(--saffron);}
+.progress-fill.success{background:var(--success);}
+
+.pill-nav{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{padding:6px 12px;border-radius:20px;border:1px solid var(--grey-300);background:#fff;font-size:12.5px;font-weight:600;color:var(--grey-700);}
+.pill.active{background:var(--gov-blue);color:#fff;border-color:var(--gov-blue);}
+
+/* Login */
+.login-wrap{min-height:100vh;display:flex;align-items:stretch;background:var(--navy);}
+.login-hero{flex:1.15;background:
+  linear-gradient(135deg,rgba(7,26,51,.94),rgba(18,58,107,.88)),
+  repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 2px,transparent 2px 40px);
+  color:#fff;padding:60px 56px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+.login-hero::after{content:"";position:absolute;bottom:-80px;right:-80px;width:320px;height:320px;border-radius:50%;border:60px solid rgba(217,122,31,.08);}
+.login-hero h1{color:#fff;font-size:32px;line-height:1.25;max-width:520px;}
+.login-hero p{color:#c9d6e6;font-size:14.5px;max-width:460px;margin-top:10px;}
+.hero-feats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:34px;max-width:560px;}
+.hero-feat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-lg);padding:12px 14px;}
+.hero-feat .t{font-weight:700;font-size:13px;color:#fff;}
+.hero-feat .d{font-size:11.5px;color:#b9c8dc;margin-top:3px;}
+.login-panel{width:440px;flex-shrink:0;background:#fff;display:flex;align-items:center;padding:40px;}
+.login-box{width:100%;}
+.login-box .top-emblem{display:flex;align-items:center;gap:10px;margin-bottom:22px;}
+.role-toggle{display:flex;gap:8px;margin-bottom:18px;background:var(--grey-50);padding:4px;border-radius:var(--radius);}
+.role-toggle button{flex:1;padding:9px;border:none;background:transparent;border-radius:4px;font-size:12.5px;font-weight:700;color:var(--grey-700);}
+.role-toggle button.active{background:#fff;color:var(--gov-blue);box-shadow:var(--shadow-sm);}
+.login-switch{text-align:center;font-size:12.5px;margin-top:14px;color:var(--grey-700);}
+@media(max-width:900px){.login-hero{display:none;}.login-panel{width:100%;}}
+
+/* misc */
+.flex{display:flex;align-items:center;}
+.flex-between{display:flex;align-items:center;justify-content:space-between;}
+.gap-8{gap:8px;}.gap-12{gap:12px;}
+.text-muted{color:var(--grey-500);}
+.text-sm{font-size:12.5px;}
+.mt-8{margin-top:8px;}.mt-12{margin-top:12px;}.mt-16{margin-top:16px;}.mt-20{margin-top:20px;}.mb-8{margin-bottom:8px;}
+.upload-drop{
+  border:2px dashed var(--grey-300);border-radius:var(--radius-lg);padding:38px 20px;text-align:center;
+  background:var(--grey-50);transition:.15s;cursor:pointer;
+}
+.upload-drop.drag{border-color:var(--gov-blue-light);background:var(--info-bg);}
+.upload-drop .icon{font-size:30px;}
+.step-track{display:flex;gap:6px;margin:14px 0;}
+.step-track .seg{flex:1;height:6px;border-radius:4px;background:var(--grey-200);}
+.step-track .seg.done{background:var(--success);}
+.step-track .seg.cur{background:var(--gov-blue);}
+.evidence-chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12px;}
+.evidence-chain .node{background:var(--grey-50);border:1px solid var(--grey-200);padding:4px 9px;border-radius:4px;font-weight:600;}
+.evidence-chain .arrow{color:var(--grey-500);}
+.carousel{position:relative;overflow:hidden;border-radius:var(--radius-lg);}
+.carousel-track{display:flex;transition:transform .35s ease;}
+.carousel-slide{min-width:100%;padding:26px 30px;color:#fff;background:linear-gradient(120deg,var(--navy),var(--gov-blue));display:flex;flex-direction:column;justify-content:center;min-height:160px;}
+.carousel-slide h4{color:#fff;font-size:18px;}
+.carousel-slide p{margin:6px 0 0;font-size:13px;color:#dbe6f5;max-width:520px;}
+.carousel-ctrls{position:absolute;top:50%;transform:translateY(-50%);width:100%;display:flex;justify-content:space-between;padding:0 10px;pointer-events:none;}
+.carousel-ctrls button{pointer-events:all;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;width:30px;height:30px;border-radius:50%;font-size:14px;}
+.carousel-dots{display:flex;gap:6px;justify-content:center;padding:10px 0;background:var(--navy);}
+.carousel-dots .d{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);}
+.carousel-dots .d.active{background:var(--saffron);}
+.info-carousel-card{min-width:230px;background:#fff;border:1px solid var(--grey-200);border-radius:var(--radius-lg);padding:14px;margin-right:12px;}
+.info-carousel-card .ic{font-size:20px;}
+.info-carousel-card h5{font-size:13px;margin:8px 0 4px;color:var(--navy);}
+.info-carousel-card p{font-size:11.5px;color:var(--grey-500);margin:0;}
+.hscroll{display:flex;overflow-x:auto;padding-bottom:6px;}
+
+.chat-wrap{display:grid;grid-template-columns:230px 1fr;gap:16px;height:calc(100vh - 220px);min-height:520px;}
+@media(max-width:900px){.chat-wrap{grid-template-columns:1fr;height:auto;}}
+.chat-hist{background:#fff;border:1px solid var(--grey-200);border-radius:var(--radius-lg);padding:10px;overflow-y:auto;}
+.chat-hist .qi{padding:8px 10px;border-radius:4px;font-size:12px;color:var(--grey-700);cursor:pointer;margin-bottom:4px;}
+.chat-hist .qi:hover{background:var(--grey-50);}
+.chat-main{display:flex;flex-direction:column;background:#fff;border:1px solid var(--grey-200);border-radius:var(--radius-lg);overflow:hidden;}
+.chat-msgs{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;}
+.msg{max-width:80%;}
+.msg.user{align-self:flex-end;}
+.msg .bubble{padding:11px 14px;border-radius:10px;font-size:13.5px;line-height:1.55;}
+.msg.user .bubble{background:var(--gov-blue);color:#fff;border-bottom-right-radius:2px;}
+.msg.ai .bubble{background:var(--grey-50);border:1px solid var(--grey-200);border-bottom-left-radius:2px;color:var(--ink);}
+.msg .meta{font-size:11px;color:var(--grey-500);margin-top:4px;}
+.msg .src-box{margin-top:8px;background:#fff;border:1px solid var(--grey-200);border-radius:6px;padding:8px 10px;font-size:11.5px;}
+.chat-suggest{display:flex;flex-wrap:wrap;gap:6px;padding:10px 18px;border-top:1px solid var(--grey-100);}
+.chat-input-row{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--grey-200);align-items:flex-end;}
+.chat-input-row textarea{flex:1;resize:none;border:1px solid var(--grey-300);border-radius:20px;padding:10px 16px;font-size:13.5px;max-height:100px;}
+.typing{display:flex;gap:4px;padding:4px 0;}
+.typing span{width:6px;height:6px;background:var(--grey-500);border-radius:50%;animation:blink 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
+.wc-tag{display:inline-block;margin:4px;padding:3px 4px;font-weight:700;}
+.footer-note{margin-top:40px;padding-top:14px;border-top:1px solid var(--grey-200);font-size:11.5px;color:var(--grey-500);text-align:center;}
+
+@media(max-width:900px){
+  .sidebar{position:fixed;left:-240px;top:0;bottom:0;z-index:500;transition:left .2s;box-shadow:var(--shadow-md);}
+  .sidebar.open{left:0;}
+  .mobile-nav-toggle{display:flex;}
+  .main{padding:16px;}
+  .grid.kpi{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     LOGIN / SIGNUP VIEW
+========================================================= -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div class="flex gap-12" style="margin-bottom:26px;">
+        <div class="emblem" style="width:52px;height:52px;font-size:14px;">GoI</div>
+        <div>
+          <div style="font-size:12px;color:#c9d6e6;">Government of India · Ministry of Coal</div>
+          <div style="font-weight:700;font-size:15px;">CMPDI &nbsp;·&nbsp; Coal India Limited</div>
+        </div>
+      </div>
+      <h1>AI-Powered Geological &amp; Mining Intelligence Platform</h1>
+      <p>An AI-assisted reporting and intelligence platform — transforming geological, mining and production records into traceable, actionable intelligence for CMPDI/CIL subsidiaries.</p>
+      <div class="hero-feats">
+        <div class="hero-feat"><div class="t">Automated Document Intelligence</div><div class="d">PDF, DOCX, XLSX and scanned records converted into structured data.</div></div>
+        <div class="hero-feat"><div class="t">AI-Assisted Reporting</div><div class="d">Traceable reports generated from validated source data.</div></div>
+        <div class="hero-feat"><div class="t">Evidence &amp; Traceability</div><div class="d">Every figure traced to document → sheet → row → column.</div></div>
+        <div class="hero-feat"><div class="t">Data Validation</div><div class="d">Automatic flagging of records needing review.</div></div>
+      </div>
+      <p class="text-sm" style="margin-top:28px;opacity:.7;">This is an AI-assisted reporting &amp; intelligence platform. It is not an official public Government of India website.</p>
+    </div>
+    <div class="login-panel">
+      <div class="login-box">
+        <div class="top-emblem">
+          <div class="emblem">CIL</div>
+          <div>
+            <div style="font-weight:800;color:var(--navy);font-size:14.5px;">CMPDI / CIL Platform</div>
+            <div class="text-sm text-muted">Sign in to continue</div>
+          </div>
+        </div>
+
+        <div id="login-status-banner"></div>
+
+        <div class="role-toggle">
+          <button type="button" id="tab-login" class="active" onclick="Auth.showTab('login')">Sign In</button>
+          <button type="button" id="tab-signup" onclick="Auth.showTab('signup')">Create Account</button>
+        </div>
+
+        <form id="login-form" onsubmit="Auth.login(event)">
+          <div class="field">
+            <label for="login-email">Official / Registered Email</label>
+            <input type="email" id="login-email" required placeholder="name@cmpdi.co.in">
+          </div>
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn primary" style="width:100%;justify-content:center;padding:11px;" id="login-submit-btn">Sign In</button>
+          <div id="login-error" class="field err" style="margin-top:10px;"></div>
+        </form>
+
+        <form id="signup-form" style="display:none;" onsubmit="Auth.signup(event)">
+          <div class="field">
+            <label for="signup-email">Email</label>
+            <input type="email" id="signup-email" required placeholder="name@cmpdi.co.in">
+          </div>
+          <div class="field">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" required minlength="8" placeholder="At least 8 characters">
+            <div class="help">Minimum 8 characters.</div>
+          </div>
+          <button type="submit" class="btn primary" style="width:100%;justify-content:center;padding:11px;" id="signup-submit-btn">Create Account</button>
+          <div id="signup-error" class="field err" style="margin-top:10px;"></div>
+        </form>
+
+        <div class="login-switch">System status:
+          <span id="login-health-dot" class="badge neutral" style="margin-left:4px;">Checking…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MAIN APPLICATION SHELL
+========================================================= -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <button class="icon-btn mobile-nav-toggle" onclick="UI.toggleSidebar()" aria-label="Toggle menu">☰</button>
+        <div class="emblem">GoI</div>
+        <div class="brand-text">
+          <div class="l1">Government of India · Ministry of Coal</div>
+          <div class="l2">CMPDI (Central Mine Planning &amp; Design Institute Ltd.) · Coal India Limited</div>
+          <div class="l3">AI-Powered Geological &amp; Mining Intelligence Platform</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="status-pill"><span class="dot" id="topbar-backend-dot"></span><span id="topbar-backend-text">Checking backend…</span></div>
+        <select class="lang-select" title="Language selector (display only)">
+          <option>English</option><option>हिन्दी</option>
+        </select>
+        <button class="icon-btn" onclick="UI.openNotifications()" aria-label="Notifications">🔔<span class="badge-dot" id="notif-dot" style="display:none;"></span></button>
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div>
+            <div style="font-size:12.5px;font-weight:700;" id="user-email-label">—</div>
+            <span class="role-badge admin" id="user-role-badge">Administrator</span>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="Auth.logout()" title="Log out" aria-label="Log out">⏻</button>
+      </div>
+    </div>
+  </div>
+  <div class="subbar">
+    <div class="subbar-inner" id="subbar-breadcrumb">Dashboard</div>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <nav id="nav-links"></nav>
+    </aside>
+
+    <main class="main">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section class="view" id="view-dashboard">
+        <div class="page-head">
+          <div>
+            <h1>Mining Intelligence &amp; Reporting Dashboard</h1>
+            <p>AI-assisted geological, mining and production intelligence for faster, traceable decision support.</p>
+          </div>
+          <button class="btn primary" onclick="Router.go('upload')" id="dash-upload-btn">+ Upload Document</button>
+        </div>
+
+        <div class="grid kpi" id="dash-kpis"></div>
+
+        <div class="card mt-20">
+          <div class="carousel" id="dash-carousel"></div>
+          <div class="carousel-dots" id="dash-carousel-dots"></div>
+        </div>
+
+        <div class="grid two mt-20">
+          <div class="card">
+            <div class="card-head"><h3>Priority Reporting</h3><span class="hint">Ministry of Coal &amp; parliamentary response support</span></div>
+            <div class="card-pad" id="priority-reporting"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Document Processing Status</h3></div>
+            <div class="card-pad"><canvas id="chart-doc-status" height="200"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card mt-20">
+          <div class="card-head"><h3>Intelligence Highlights</h3><span class="hint">Scroll to explore</span></div>
+          <div class="card-pad hscroll" id="highlights-scroll"></div>
+        </div>
+      </section>
+
+      <!-- ============ DOCUMENTS ============ -->
+      <section class="view" id="view-documents">
+        <div class="page-head">
+          <div><h1>Document Management</h1><p>Upload, process and review geological and mining source documents.</p></div>
+          <div class="flex gap-8">
+            <button class="btn" onclick="Documents.load()">↻ Refresh</button>
+            <button class="btn primary" onclick="Router.go('upload')" id="documents-upload-btn">+ Upload Document</button>
+          </div>
+        </div>
+        <div id="documents-list"></div>
+      </section>
+
+      <!-- ============ UPLOAD ============ -->
+      <section class="view" id="view-upload">
+        <div class="breadcrumb"><a href="#" onclick="Router.go('documents');return false;">Documents</a> / <span class="cur">Upload &amp; Processing</span></div>
+        <div class="page-head"><div><h1>Upload Geological / Mining Document</h1><p>Supported formats: PDF, scanned PDF, DOCX, XLSX, PNG, JPG, JPEG (max 25MB).</p></div></div>
+        <div id="admin-only-upload-guard"></div>
+        <div class="card card-pad" id="upload-card">
+          <div class="upload-drop" id="upload-drop" onclick="document.getElementById('file-input').click()">
+            <div class="icon">📤</div>
+            <div style="font-weight:700;margin-top:6px;">Drag &amp; drop a file here, or click to browse</div>
+            <div class="text-sm text-muted mt-8">PDF · DOCX · XLSX · PNG · JPG · JPEG</div>
+            <input type="file" id="file-input" style="display:none;" accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" onchange="Upload.handleFile(this.files[0])">
+          </div>
+        </div>
+        <div id="upload-progress-area" class="mt-20"></div>
+      </section>
+
+      <!-- ============ DOCUMENT DETAIL ============ -->
+      <section class="view" id="view-doc-detail">
+        <div class="breadcrumb"><a href="#" onclick="Router.go('documents');return false;">Documents</a> / <span class="cur" id="doc-detail-breadcrumb">Document</span></div>
+        <div id="doc-detail-body"></div>
+      </section>
+
+      <!-- ============ DATA EXPLORER ============ -->
+      <section class="view" id="view-explorer">
+        <div class="page-head"><div><h1>Data Explorer</h1><p>Search and filter extracted mine records across all processed documents.</p></div></div>
+        <div class="card card-pad mt-8">
+          <div class="grid four">
+            <div class="field" style="margin-bottom:0;"><label>Search</label><input id="ex-q" placeholder="Mine, state, district, owner…" oninput="Explorer.debouncedLoad()"></div>
+            <div class="field" style="margin-bottom:0;"><label>State/UT</label><select id="ex-state" onchange="Explorer.load()"><option value="">All</option></select></div>
+            <div class="field" style="margin-bottom:0;"><label>Coal / Lignite</label><select id="ex-coal" onchange="Explorer.load()"><option value="">All</option><option>Coal</option><option>Lignite</option></select></div>
+            <div class="field" style="margin-bottom:0;"><label>Validation</label><select id="ex-status" onchange="Explorer.load()"><option value="">All</option><option>VERIFIED</option><option>NEEDS_REVIEW</option><option>WARNING</option><option>ERROR</option></select></div>
+          </div>
+        </div>
+        <div class="card mt-16"><div id="explorer-table"></div></div>
+      </section>
+
+      <!-- ============ ANALYTICS ============ -->
+      <section class="view" id="view-analytics">
+        <div class="page-head">
+          <div><h1>Analytics</h1><p>Descriptive analytics computed directly from validated records.</p></div>
+          <select id="analytics-doc-filter" onchange="Analytics.load()" style="padding:8px 10px;border:1px solid var(--grey-300);border-radius:4px;"><option value="">All documents</option></select>
+        </div>
+        <div id="analytics-body"></div>
+      </section>
+
+      <!-- ============ REPORTS ============ -->
+      <section class="view" id="view-reports">
+        <div class="page-head">
+          <div><h1>Report Library</h1><p>AI-assisted reports generated from validated source documents.</p></div>
+          <button class="btn primary" onclick="Reports.openGenerateModal()" id="reports-generate-btn">+ Generate Report</button>
+        </div>
+        <div id="reports-list"></div>
+      </section>
+
+      <!-- ============ REPORT DETAIL ============ -->
+      <section class="view" id="view-report-detail">
+        <div class="breadcrumb"><a href="#" onclick="Router.go('reports');return false;">Reports</a> / <span class="cur">Report</span></div>
+        <div id="report-detail-body"></div>
+      </section>
+
+      <!-- ============ AI ASSISTANT ============ -->
+      <section class="view" id="view-assistant">
+        <div class="page-head"><div><h1>AI Mining Intelligence Assistant</h1><p>Ask about production, documents, validation, or historical records. Answers are grounded in source data where available.</p></div></div>
+        <div class="chat-wrap">
+          <div class="chat-hist" id="chat-hist"><div class="text-sm text-muted" style="padding:8px;">Your questions this session will appear here.</div></div>
+          <div class="chat-main">
+            <div class="chat-msgs" id="chat-msgs">
+              <div class="empty-state">
+                <div class="icon">🤖</div>
+                <div class="msg">Ask a question about mining and geological records below.</div>
+              </div>
+            </div>
+            <div class="chat-suggest" id="chat-suggest"></div>
+            <div class="chat-input-row">
+              <button class="btn btn-icon-only" onclick="document.getElementById('chat-image-input').click()" title="Attach image">📎</button>
+              <input type="file" id="chat-image-input" accept="image/png,image/jpeg" style="display:none;" onchange="Assistant.attachImage(this.files[0])">
+              <textarea id="chat-input" rows="1" placeholder="Ask the AI assistant…" onkeydown="Assistant.onKey(event)"></textarea>
+              <button class="btn primary" id="chat-send-btn" onclick="Assistant.send()">Send</button>
+            </div>
+            <div id="chat-image-preview" style="display:none;padding:8px 14px;font-size:12px;color:var(--grey-700);border-top:1px solid var(--grey-100);"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WORD CLOUD ============ -->
+      <section class="view" id="view-wordcloud">
+        <div class="page-head"><div><h1>Automated Word Cloud</h1><p>Most frequent terms and keywords across processed documents.</p></div></div>
+        <div class="card card-pad" id="wordcloud-body"></div>
+      </section>
+
+      <!-- ============ TOPIC INTELLIGENCE ============ -->
+      <section class="view" id="view-topics">
+        <div class="page-head"><div><h1>Topic Intelligence</h1><p>Automated topic identification across the document corpus.</p></div></div>
+        <div class="card card-pad" id="topics-body"></div>
+      </section>
+
+      <!-- ============ HISTORY ============ -->
+      <section class="view" id="view-history">
+        <div class="page-head"><div><h1 id="history-title">Activity History</h1><p id="history-sub">Read-only record of platform activity.</p></div></div>
+        <div class="card card-pad" id="history-body"></div>
+      </section>
+
+      <!-- ============ USER ACTIVITY (admin) ============ -->
+      <section class="view" id="view-useractivity">
+        <div class="page-head"><div><h1>User Activity</h1><p>Platform-wide user activity monitoring (admin only).</p></div></div>
+        <div class="card card-pad" id="useractivity-body"></div>
+      </section>
+
+      <!-- ============ SYSTEM HEALTH ============ -->
+      <section class="view" id="view-health">
+        <div class="page-head"><div><h1>System Health</h1><p>Live status of backend services.</p></div></div>
+        <div id="health-body"></div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section class="view" id="view-settings">
+        <div class="page-head"><div><h1>Settings</h1></div></div>
+        <div class="card card-pad" id="settings-body"></div>
+      </section>
+
+      <!-- ============ PROFILE ============ -->
+      <section class="view" id="view-profile">
+        <div class="page-head"><div><h1>My Profile</h1></div></div>
+        <div class="card card-pad" id="profile-body"></div>
+      </section>
+
+      <div class="footer-note">CMPDI/CIL AI-Assisted Reporting &amp; Intelligence Platform — a decision-support tool. Not an official public Government of India portal. AI-generated content requires human verification before official use.</div>
+    </main>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-box"></div>
+</div>
+
+<script>
+/* ============================================================
+   API LAYER — single source of truth for backend communication
+   ============================================================ */
+const API_BASE = "https://mineintel.onrender.com";
+
+async function apiFetch(endpoint, options = {}) {
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      credentials: "include",
+      headers: options.body instanceof FormData ? options.headers : {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
+    });
+  } catch (netErr) {
+    throw { networkError: true, message: "Unable to connect to the CMPDI/CIL service. Please check your connection and try again." };
+  }
+
+  if (res.status === 401) {
+    Auth.onUnauthorized();
+    throw { status: 401, message: "Your session has expired. Please sign in again." };
+  }
+  if (!res.ok) {
+    let detail = `Request failed (HTTP ${res.status}).`;
+    try { const j = await res.json(); if (j && j.detail) detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch (e) {}
+    if (res.status === 403) detail = detail || "You do not have permission to perform this action.";
+    if (res.status === 404) detail = detail || "The requested resource was not found.";
+    if (res.status === 422) detail = detail || "The submitted data was invalid.";
+    if (res.status >= 500) detail = "The CMPDI/CIL service encountered an internal error. Please try again shortly.";
+    if (res.status === 503) detail = "The service is temporarily unavailable (it may be starting up on Render — this can take up to a minute). Please try again.";
+    throw { status: res.status, message: detail };
+  }
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return res.json();
+  return res;
+}
+
+const API = {
+  health: () => apiFetch("/api/health"),
+  me: () => apiFetch("/api/auth/me"),
+  login: (email, password) => apiFetch("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  signup: (email, password) => apiFetch("/api/auth/signup", { method: "POST", body: JSON.stringify({ email, password }) }),
+  logout: () => apiFetch("/api/auth/logout", { method: "POST" }),
+  mines: (params) => apiFetch("/api/mines?" + new URLSearchParams(params)),
+  mineEvidence: (mineId) => apiFetch(`/api/mines/${mineId}/evidence`),
+  validationSummary: (documentId) => apiFetch("/api/validation/summary" + (documentId ? `?document_id=${documentId}` : "")),
+  upload: (formData) => apiFetch("/api/upload", { method: "POST", body: formData }),
+  extract: (docId) => apiFetch(`/api/documents/${docId}/extract`, { method: "POST" }),
+  documents: () => apiFetch("/api/documents"),
+  document: (id) => apiFetch(`/api/documents/${id}`),
+  analytics: (documentId) => apiFetch("/api/analytics/full" + (documentId ? `?document_id=${documentId}` : "")),
+  generateReport: (docId) => apiFetch(`/api/documents/${docId}/reports`, { method: "POST" }),
+  reports: (documentId) => apiFetch("/api/reports" + (documentId ? `?document_id=${documentId}` : "")),
+  report: (id) => apiFetch(`/api/reports/${id}`),
+  reportPdfUrl: (id) => `${API_BASE}/api/reports/${id}/pdf`,
+  reportDocxUrl: (id) => `${API_BASE}/api/reports/${id}/docx`,
+  assistantAsk: (payload) => apiFetch("/api/assistant/ask", { method: "POST", body: JSON.stringify(payload) }),
+  assistantAskImage: (formData) => apiFetch("/api/assistant/ask-image", { method: "POST", body: formData }),
+  wordcloud: (documentId) => apiFetch("/api/analytics/wordcloud" + (documentId ? `?document_id=${documentId}` : "")),
+  topics: (documentId) => apiFetch("/api/analytics/topics" + (documentId ? `?document_id=${documentId}` : "")),
+  myHistory: (limit=50, offset=0) => apiFetch(`/api/history?limit=${limit}&offset=${offset}`),
+  adminActivity: (params={}) => apiFetch("/api/admin/activity?" + new URLSearchParams(params)),
+  notifications: () => apiFetch("/api/notifications"),
+  markNotificationRead: (id) => apiFetch(`/api/notifications/${id}/read`, {method:"POST"}),
+  markAllNotificationsRead: () => apiFetch("/api/notifications/read-all", {method:"POST"}),
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const State = {
+  user: null,
+  backendOnline: null,
+  dbConnected: null,
+  documents: [],
+  documentsLoaded: false,
+  chatHistory: [],
+  currentDocId: null,
+  currentReportId: null,
+  explorerPage: 0,
+  explorerPageSize: 20,
+  explorerTotal: 0,
+  chatImage: null,
+  notifications: [],
+};
+function isAdmin(){ return !!(State.user && State.user.role === "admin"); }
+
+/* ============================================================
+   TOAST / UI HELPERS
+   ============================================================ */
+const UI = {
+  toast(msg, type="info"){
+    const wrap = document.getElementById("toast-wrap");
+    const el = document.createElement("div");
+    el.className = "toast " + type;
+    el.innerHTML = `<div>${msg}</div><span class="x" onclick="this.parentElement.remove()">×</span>`;
+    wrap.appendChild(el);
+    setTimeout(()=>el.remove(), 6000);
+  },
+  errorMsg(e){
+    if (e && e.message) return e.message;
+    return "Unable to connect to the CMPDI/CIL service. Please try again.";
+  },
+  toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); },
+  openModal(html){
+    document.getElementById("modal-box").innerHTML = html;
+    document.getElementById("modal-overlay").classList.add("active");
+  },
+  closeModal(){ document.getElementById("modal-overlay").classList.remove("active"); },
+  fmtNum(n){ if(n===null||n===undefined||n==="") return "N/A"; return Number(n).toLocaleString("en-IN", {maximumFractionDigits:2}); },
+  fmtDate(s){ if(!s) return "N/A"; try { return new Date(s).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"}); } catch(e){ return s; } },
+  statusBadge(status){
+    const s = (status||"").toUpperCase();
+    const map = {
+      SUCCESS:"success", VERIFIED:"success", EXTRACTED:"success", GENERATED:"success", COMPLETED:"success",
+      PROCESSING:"info", UPLOADED:"info", GENERATING:"info", PENDING:"warning", NEEDS_REVIEW:"warning", WARNING:"warning",
+      ERROR:"error", FAILED:"error", UNSUPPORTED:"neutral", NOT_AVAILABLE:"neutral"
+    };
+    const cls = map[s] || "neutral";
+    return `<span class="badge ${cls}">${status||"N/A"}</span>`;
+  }
+};
+document.getElementById("modal-overlay").addEventListener("click", (e)=>{ if(e.target.id==="modal-overlay") UI.closeModal(); });
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+const Auth = {
+  showTab(tab){
+    document.getElementById("tab-login").classList.toggle("active", tab==="login");
+    document.getElementById("tab-signup").classList.toggle("active", tab==="signup");
+    document.getElementById("login-form").style.display = tab==="login" ? "block":"none";
+    document.getElementById("signup-form").style.display = tab==="signup" ? "block":"none";
+  },
+  async login(e){
+    e.preventDefault();
+    const btn = document.getElementById("login-submit-btn");
+    const errEl = document.getElementById("login-error");
+    errEl.textContent = "";
+    btn.disabled = true; btn.textContent = "Signing in…";
+    try {
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+      const user = await API.login(email, password);
+      State.user = user;
+      App.enter();
+    } catch(err){
+      errEl.textContent = UI.errorMsg(err);
+    } finally {
+      btn.disabled = false; btn.textContent = "Sign In";
+    }
+  },
+  async signup(e){
+    e.preventDefault();
+    const btn = document.getElementById("signup-submit-btn");
+    const errEl = document.getElementById("signup-error");
+    errEl.textContent = "";
+    btn.disabled = true; btn.textContent = "Creating account…";
+    try {
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value;
+      const user = await API.signup(email, password);
+      State.user = user;
+      App.enter();
+    } catch(err){
+      errEl.textContent = UI.errorMsg(err);
+    } finally {
+      btn.disabled = false; btn.textContent = "Create Account";
+    }
+  },
+  async logout(){
+    try { await API.logout(); } catch(e) {}
+    State.user = null;
+    document.getElementById("app").classList.remove("active");
+    document.getElementById("login-screen").style.display = "block";
+    UI.toast("You have been signed out.", "info");
+  },
+  onUnauthorized(){
+    if (document.getElementById("app").classList.contains("active")){
+      State.user = null;
+      document.getElementById("app").classList.remove("active");
+      document.getElementById("login-screen").style.display = "block";
+      document.getElementById("login-status-banner").innerHTML =
+        `<div class="banner warning"><div><b>Session expired</b>Please sign in again to continue.</div></div>`;
+    }
+  },
+  async checkSession(){
+    try {
+      const user = await API.me();
+      if (user){ State.user = user; return true; }
+      return false;
+    } catch(e){ return false; }
+  }
+};
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const NAV_ITEMS = [
+  {id:"dashboard", label:"Dashboard", icon:"🏠"},
+  {id:"documents", label:"Documents", icon:"📄"},
+  {id:"upload", label:"Upload & Processing", icon:"⬆️", adminOnly:true},
+  {id:"explorer", label:"Data Explorer", icon:"🔎"},
+  {id:"analytics", label:"Analytics", icon:"📊"},
+  {id:"reports", label:"Reports", icon:"📑"},
+  {id:"assistant", label:"AI Assistant", icon:"🤖"},
+  {id:"wordcloud", label:"Word Cloud", icon:"☁️"},
+  {id:"topics", label:"Topic Intelligence", icon:"🧭"},
+  {id:"history", label:"History", icon:"🕘"},
+  {id:"useractivity", label:"User Activity", icon:"👥", adminOnly:true},
+  {id:"health", label:"System Health", icon:"💚", adminOnly:true},
+  {id:"settings", label:"Settings", icon:"⚙️", adminOnly:true},
+  {id:"profile", label:"Profile", icon:"👤", viewerOnly:true},
+];
+
+function renderNav(){
+  const nav = document.getElementById("nav-links");
+  nav.innerHTML = NAV_ITEMS.filter(i => {
+    if (i.adminOnly && !isAdmin()) return false;
+    if (i.viewerOnly && isAdmin()) return false;
+    return true;
+  }).map(i => `<a href="#" data-nav="${i.id}" onclick="Router.go('${i.id}');return false;"><span class="icon">${i.icon}</span>${i.label}</a>`).join("");
+}
+
+const Router = {
+  current: "dashboard",
+  go(view){
+    this.current = view;
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    const el = document.getElementById("view-"+view);
+    if (el) el.classList.add("active");
+    document.querySelectorAll("[data-nav]").forEach(a=>a.classList.toggle("active", a.dataset.nav===view));
+    document.getElementById("subbar-breadcrumb").innerHTML = `<b>${(NAV_ITEMS.find(n=>n.id===view)||{label:view}).label}</b>`;
+    document.getElementById("sidebar").classList.remove("open");
+    window.scrollTo(0,0);
+    Router.load(view);
+  },
+  load(view){
+    if (view==="dashboard") Dashboard.load();
+    if (view==="documents") Documents.load();
+    if (view==="upload") Upload.init();
+    if (view==="explorer") Explorer.init();
+    if (view==="analytics") Analytics.init();
+    if (view==="reports") Reports.load();
+    if (view==="assistant") Assistant.init();
+    if (view==="wordcloud") WordCloud.load();
+    if (view==="topics") Topics.load();
+    if (view==="history") History.load();
+    if (view==="useractivity") UserActivity.load();
+    if (view==="health") Health.load();
+    if (view==="settings") Settings.load();
+    if (view==="profile") Profile.load();
+  }
+};
+
+/* ============================================================
+   APP BOOTSTRAP
+   ============================================================ */
+const App = {
+  async enter(){
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").classList.add("active");
+    document.getElementById("user-email-label").textContent = State.user.email;
+    document.getElementById("user-avatar").textContent = (State.user.email||"U").charAt(0).toUpperCase();
+    this.applyRoleUI();
+    renderNav();
+    await Health.checkAndReflect();
+    Notifications.refreshDot();
+    setInterval(()=>{ if (State.user) Notifications.refreshDot(); }, 45000);
+    Router.go("dashboard");
+  },
+  applyRoleUI(){
+    const badge = document.getElementById("user-role-badge");
+    badge.textContent = isAdmin() ? "Administrator" : "User / Viewer";
+    badge.className = "role-badge " + (isAdmin() ? "admin" : "viewer");
+    document.getElementById("dash-upload-btn").style.display = isAdmin() ? "inline-flex" : "none";
+    document.getElementById("documents-upload-btn").style.display = isAdmin() ? "inline-flex" : "none";
+    document.getElementById("reports-generate-btn").style.display = isAdmin() ? "inline-flex" : "none";
+  }
+};
+
+async function bootstrap(){
+  Health.pollLoginScreen();
+  const authed = await Auth.checkSession();
+  if (authed) App.enter();
+}
+bootstrap();
+
+/* ============================================================
+   SYSTEM HEALTH
+   ============================================================ */
+const Health = {
+  async pollLoginScreen(){
+    try {
+      const h = await API.health();
+      const dot = document.getElementById("login-health-dot");
+      const ok = h.api === "ok" && h.database === "connected";
+      dot.textContent = ok ? "● Backend Online" : (h.database === "not_configured" ? "● Database Not Configured" : "● Database Unavailable");
+      dot.className = "badge " + (ok ? "success" : "warning");
+    } catch(e){
+      document.getElementById("login-health-dot").textContent = "● Backend Unreachable";
+      document.getElementById("login-health-dot").className = "badge error";
+    }
+  },
+  async checkAndReflect(){
+    const dot = document.getElementById("topbar-backend-dot");
+    const txt = document.getElementById("topbar-backend-text");
+    try {
+      const h = await API.health();
+      State.backendOnline = true;
+      State.dbConnected = h.database === "connected";
+      dot.className = "dot " + (State.dbConnected ? "ok" : "warn");
+      txt.textContent = State.dbConnected ? "Backend Online · Database Connected" : `Backend Online · Database: ${h.database}`;
+      return h;
+    } catch(e){
+      State.backendOnline = false; State.dbConnected = false;
+      dot.className = "dot bad";
+      txt.textContent = "Backend Unreachable";
+      return null;
+    }
+  },
+  async load(){
+    const el = document.getElementById("health-body");
+    if (!isAdmin()){
+      el.innerHTML = `<div class="banner error"><div><b>Access denied</b>System Health is an administrator-only page.</div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="card card-pad"><div class="skeleton sk-block"></div></div>`;
+    const h = await this.checkAndReflect();
+    const rows = [
+      ["FastAPI Backend", h ? "ok" : "unreachable", h ? h.timestamp : "N/A"],
+      ["PostgreSQL Database", h ? h.database : "unknown", h && h.database_error ? h.database_error : "—"],
+      ["File Storage (uploads/reports)", h ? (h.storage_writable ? "ok" : "error") : "unknown", h ? (h.storage_writable ? "Writable" : "Not writable — check disk/permissions") : "—"],
+      ["AI Assistant (Grok)", h ? (h.ai_configured ? "ok" : "warning") : "unknown", h ? (h.ai_configured ? "API key configured" : "No key set — deterministic template answers only") : "—"],
+    ];
+    el.innerHTML = `
+      <div class="grid two">
+        <div class="card card-pad">
+          <h3>Live Service Status</h3>
+          <table class="mt-12"><thead><tr><th>Service</th><th>Status</th><th>Detail</th></tr></thead><tbody>
+            ${rows.map(r=>`<tr><td>${r[0]}</td><td>${UI.statusBadge(r[1]==="connected"||r[1]==="ok" ? "SUCCESS" : (r[1]==="unreachable"||r[1]==="error"?"ERROR":"WARNING"))} ${r[1]}</td><td class="mono">${r[2]||"—"}</td></tr>`).join("")}
+          </tbody></table>
+          <div class="text-sm text-muted mt-12">Checked via GET /api/health. Render free-tier services may take up to ~60s to respond after a period of inactivity (cold start). Only booleans/status strings are reported — no secret values are ever returned.</div>
+        </div>
+        <div class="card card-pad">
+          <h3>Report Generation</h3>
+          <p class="text-sm text-muted">Report generation is exercised on demand from the Reports page; any failure updates the report's status to <span class="mono">error</span> with a message, and is recorded in the audit log.</p>
+        </div>
+      </div>
+      <div class="banner info mt-20">
+        <div>
+          <b>Role Enforcement — Live</b>
+          Your role (<span class="mono">${isAdmin()?'admin':'viewer'}</span>) is looked up server-side from the
+          <span class="mono">users</span> table on every authenticated request via the session cookie — it is never
+          accepted from the browser. Admin-only endpoints (<span class="mono">POST /api/upload</span>,
+          <span class="mono">/extract</span>, <span class="mono">/reports</span>,
+          <span class="mono">GET /api/admin/activity</span>) return HTTP 403 for any non-admin session, even if a
+          request is crafted by hand to call them directly.
+        </div>
+      </div>`;
+  }
+};
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+const CAROUSEL_SLIDES = [
+  {h:"Automated Document Intelligence", d:"PDF, DOCX, XLSX and scanned records converted into structured, validated data.", cta:"upload"},
+  {h:"AI-Assisted Reporting", d:"Generate traceable reports from validated source data, with PDF and DOCX export.", cta:"reports"},
+  {h:"Historical Mining Intelligence", d:"Retrieve insights across historical and contemporary geological and production records.", cta:"explorer"},
+  {h:"Evidence-Based AI", d:"AI responses are grounded in source records and evidence wherever available.", cta:"assistant"},
+  {h:"Data Quality &amp; Validation", d:"Identify errors, warnings, and records requiring review before official submission.", cta:"analytics"},
+];
+let dashCarouselIdx = 0, dashCarouselTimer = null;
+function renderDashCarousel(){
+  const track = document.getElementById("dash-carousel");
+  track.innerHTML = `<div class="carousel-track" id="dash-track">${CAROUSEL_SLIDES.map(s=>`
+    <div class="carousel-slide"><h4>${s.h}</h4><p>${s.d}</p><div class="mt-12"><button class="btn saffron sm" onclick="Router.go('${s.cta}')">Explore →</button></div></div>
+  `).join("")}</div>
+  <div class="carousel-ctrls"><button onclick="moveDashCarousel(-1)" aria-label="Previous">‹</button><button onclick="moveDashCarousel(1)" aria-label="Next">›</button></div>`;
+  document.getElementById("dash-carousel-dots").innerHTML = CAROUSEL_SLIDES.map((_,i)=>`<span class="d ${i===0?'active':''}"></span>`).join("");
+  updateDashCarousel();
+}
+function updateDashCarousel(){
+  const track = document.getElementById("dash-track");
+  if (track) track.style.transform = `translateX(-${dashCarouselIdx*100}%)`;
+  document.querySelectorAll("#dash-carousel-dots .d").forEach((d,i)=>d.classList.toggle("active", i===dashCarouselIdx));
+}
+function moveDashCarousel(dir){
+  dashCarouselIdx = (dashCarouselIdx + dir + CAROUSEL_SLIDES.length) % CAROUSEL_SLIDES.length;
+  updateDashCarousel();
+}
+
+const Dashboard = {
+  async load(){
+    renderDashCarousel();
+    const kpiEl = document.getElementById("dash-kpis");
+    kpiEl.innerHTML = Array(8).fill(0).map(()=>`<div class="kpi-card"><div class="skeleton sk-line" style="width:60%"></div><div class="skeleton sk-line" style="width:40%;height:22px;"></div></div>`).join("");
+
+    let docs = [], analytics = null, validation = [];
+    try { docs = await API.documents(); State.documents = docs; State.documentsLoaded = true; } catch(e){ UI.toast(UI.errorMsg(e), "error"); }
+    try { analytics = await API.analytics(); } catch(e){}
+    try { validation = await API.validationSummary(); } catch(e){}
+    let reports = [];
+    try { reports = await API.reports(); } catch(e){}
+
+    const totalDocs = docs.length;
+    const processedDocs = docs.filter(d=>d.status==="extracted").length;
+    const mineCount = analytics ? analytics.totals.mine_count : null;
+    const verified = validation.find(v=>v.status==="VERIFIED");
+    const validatedCount = verified ? verified.count : (analytics ? analytics.validation.by_status.VERIFIED : null);
+    const dataQuality = analytics && analytics.totals.mine_count ? Math.round((validatedCount||0)/analytics.totals.mine_count*100) : null;
+    const automation = totalDocs ? Math.round(processedDocs/totalDocs*100) : null;
+
+    const kpis = [
+      ["Total Documents", totalDocs, "c1"],
+      ["Processed Documents", processedDocs, "c2"],
+      ["Total Mine Records", mineCount, "c3"],
+      ["Validated Records", validatedCount, "c4"],
+      ["Reports Generated", reports.length, "c1"],
+      ["AI Queries (session)", State.chatHistory.length, "c2"],
+      ["Data Quality", dataQuality!==null? dataQuality+"%":null, "c3"],
+      ["Automation", automation!==null? automation+"%":null, "c4"],
+    ];
+    kpiEl.innerHTML = kpis.map(([label,val,c])=>`
+      <div class="kpi-card ${c}"><div class="label">${label}</div><div class="value">${val===null||val===undefined?"N/A":val}</div></div>
+    `).join("");
+
+    // Doc status chart
+    const statusCounts = {};
+    docs.forEach(d=>{ statusCounts[d.status] = (statusCounts[d.status]||0)+1; });
+    const ctx = document.getElementById("chart-doc-status");
+    if (window._docStatusChart) window._docStatusChart.destroy();
+    if (Object.keys(statusCounts).length){
+      window._docStatusChart = new Chart(ctx, {
+        type: "doughnut",
+        data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts),
+          backgroundColor: ["#123a6b","#d97a1f","#1e7d3c","#c23636","#9a3fb0","#1e9aa8"] }] },
+        options: { plugins: { legend: { position: "bottom", labels:{boxWidth:10,font:{size:11}} } } }
+      });
+    } else {
+      ctx.parentElement.innerHTML = `<div class="empty-state"><div class="icon">📄</div><div class="msg">No documents have been uploaded yet.</div></div>`;
+    }
+
+    // Priority reporting
+    const needsReview = docs.filter(d=>d.status==="error" || d.status==="unsupported").length;
+    const validationExceptions = analytics ? (analytics.validation.by_status.NEEDS_REVIEW + analytics.validation.by_status.WARNING + analytics.validation.by_status.ERROR) : null;
+    document.getElementById("priority-reporting").innerHTML = `
+      <table><tbody>
+        <tr><td>Recent Reports</td><td class="num">${reports.length}</td></tr>
+        <tr><td>Documents Requiring Review</td><td class="num">${needsReview}</td></tr>
+        <tr><td>Validation Exceptions</td><td class="num">${validationExceptions===null?"N/A":validationExceptions}</td></tr>
+        <tr><td>Frequently Requested Information</td><td class="num text-muted">Not available yet</td></tr>
+      </tbody></table>`;
+
+    // Highlights carousel
+    const highlights = [
+      {ic:"📄", t:"Production Overview", d: analytics ? `${UI.fmtNum(analytics.totals.total_production_mt)} MT total production` : "No data available"},
+      {ic:"🗺️", t:"State-wise Activity", d: analytics && analytics.by_state.length ? `${analytics.by_state[0].state_ut} leads with ${UI.fmtNum(analytics.by_state[0].total_production_mt)} MT` : "No data available"},
+      {ic:"📊", t:"Validation Health", d: analytics ? `${analytics.validation.by_status.VERIFIED} verified / ${analytics.validation.total_mines} records` : "No data available"},
+      {ic:"📑", t:"Recent Reports", d: reports.length ? `${reports.length} report(s) generated` : "No reports generated yet"},
+      {ic:"🤖", t:"AI Insights", d: "Ask the AI Assistant for grounded, source-backed answers"},
+    ];
+    document.getElementById("highlights-scroll").innerHTML = highlights.map(h=>`
+      <div class="info-carousel-card"><div class="ic">${h.ic}</div><h5>${h.t}</h5><p>${h.d}</p></div>
+    `).join("");
+
+    if (!dashCarouselTimer){
+      dashCarouselTimer = setInterval(()=>moveDashCarousel(1), 9000);
+    }
+  }
+};
+
+/* ============================================================
+   DOCUMENTS
+   ============================================================ */
+const Documents = {
+  async load(){
+    const el = document.getElementById("documents-list");
+    el.innerHTML = `<div class="card card-pad"><div class="skeleton sk-block"></div></div>`;
+    try {
+      const docs = await API.documents();
+      State.documents = docs; State.documentsLoaded = true;
+      if (!docs.length){
+        el.innerHTML = `<div class="card"><div class="empty-state"><div class="icon">📄</div><div class="msg">No documents have been uploaded yet.</div><div class="sub">${isAdmin() ? "Use Upload & Processing to add your first document." : "Documents will appear here once an administrator uploads them."}</div></div></div>`;
+        return;
+      }
+      el.innerHTML = `<div class="card"><div class="table-wrap"><table>
+        <thead><tr><th>Document</th><th>Type</th><th>ID</th><th>Uploaded</th><th>Status</th><th>Extraction</th><th>Actions</th></tr></thead>
+        <tbody>${docs.map(d=>`
+          <tr>
+            <td><b>${d.filename}</b></td>
+            <td class="mono">${d.file_type||"—"}</td>
+            <td class="mono">#${d.id}</td>
+            <td class="text-sm">${UI.fmtDate(d.uploaded_at)}</td>
+            <td>${UI.statusBadge(d.status)}</td>
+            <td class="text-sm">${d.extracted_rows!=null ? `${d.extracted_rows}/${d.total_rows||"?"} rows` : "—"}</td>
+            <td>
+              <button class="btn sm" onclick="DocDetail.open(${d.id})">View</button>
+              ${isAdmin() && d.status==="uploaded" ? `<button class="btn sm primary" onclick="Documents.extract(${d.id})">Process</button>` : ""}
+              ${isAdmin() && d.status==="extracted" ? `<button class="btn sm saffron" onclick="Reports.generate(${d.id})">Report</button>` : ""}
+            </td>
+          </tr>
+        `).join("")}</tbody>
+      </table></div></div>`;
+    } catch(e){
+      el.innerHTML = `<div class="banner error"><div><b>Unable to load documents</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  },
+  async extract(id){
+    UI.toast("Processing document — extracting, validating…", "info");
+    try {
+      await API.extract(id);
+      UI.toast("Document processed successfully.", "success");
+      this.load();
+    } catch(e){ UI.toast(UI.errorMsg(e), "error"); }
+  }
+};
+
+/* ============================================================
+   UPLOAD
+   ============================================================ */
+const Upload = {
+  init(){
+    const guard = document.getElementById("admin-only-upload-guard");
+    if (!isAdmin()){
+      guard.innerHTML = `<div class="banner warning"><div><b>Viewer accounts cannot upload documents</b>Note: this restriction is enforced by this browser's UI only, not by the backend server (see System Health). Please contact an administrator.</div></div>`;
+      document.getElementById("upload-card").style.display = "none";
+      return;
+    }
+    guard.innerHTML = "";
+    document.getElementById("upload-card").style.display = "block";
+    const drop = document.getElementById("upload-drop");
+    drop.ondragover = (e)=>{ e.preventDefault(); drop.classList.add("drag"); };
+    drop.ondragleave = ()=> drop.classList.remove("drag");
+    drop.ondrop = (e)=>{ e.preventDefault(); drop.classList.remove("drag"); if (e.dataTransfer.files[0]) Upload.handleFile(e.dataTransfer.files[0]); };
+  },
+  async handleFile(file){
+    if (!file) return;
+    const allowed = ["pdf","docx","xlsx","png","jpg","jpeg"];
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (!allowed.includes(ext)){ UI.toast("Unsupported file type. Supported: PDF, DOCX, XLSX, PNG, JPG, JPEG.", "error"); return; }
+    if (file.size > 25*1024*1024){ UI.toast("File is too large. Maximum allowed is 25 MB.", "error"); return; }
+
+    const area = document.getElementById("upload-progress-area");
+    const cardId = "upl_" + Date.now();
+    area.insertAdjacentHTML("afterbegin", `
+      <div class="card card-pad mt-12" id="${cardId}">
+        <div class="flex-between"><b>${file.name}</b><span class="text-sm text-muted">${(file.size/1024).toFixed(0)} KB</span></div>
+        <div class="step-track">${[1,2,3,4,5,6].map(()=>`<div class="seg"></div>`).join("")}</div>
+        <div class="text-sm" id="${cardId}_status">Uploading…</div>
+      </div>`);
+    const segs = document.querySelectorAll(`#${cardId} .seg`);
+    const statusLine = document.getElementById(`${cardId}_status`);
+    const setStep = (n, label) => { segs.forEach((s,i)=>{ s.className = "seg " + (i<n?"done":(i===n?"cur":"")); }); statusLine.textContent = label; };
+
+    setStep(0, "Step 1/6 — Uploading…");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const doc = await API.upload(fd);
+      setStep(1, "Step 2/6 — Uploaded. Starting processing…");
+      UI.toast(`"${file.name}" uploaded (Document #${doc.id}).`, "success");
+
+      setStep(2, "Step 3/6 — Extracting structured data…");
+      const extracted = await API.extract(doc.id);
+      if (extracted.status === "extracted"){
+        setStep(4, "Step 5/6 — Validating & indexing…");
+        await new Promise(r=>setTimeout(r,300));
+        setStep(6, `Step 6/6 — Ready. ${extracted.extracted_rows||0} record(s) extracted.`);
+        UI.toast("Document processed and ready.", "success");
+      } else if (extracted.status === "unsupported"){
+        setStep(3, "Extraction not yet supported for this file type by the backend.");
+        UI.toast("This file type is not yet supported for extraction by the backend.", "warning");
+      } else {
+        setStep(3, `Extraction failed: ${extracted.error_message||"Unknown error"}`);
+        UI.toast("Extraction failed: " + (extracted.error_message||"Unknown error"), "error");
+      }
+      Documents.load();
+    } catch(e){
+      statusLine.innerHTML = `<span style="color:var(--error);">Failed: ${UI.errorMsg(e)}</span>`;
+      UI.toast(UI.errorMsg(e), "error");
+    }
+  }
+};
+
+/* ============================================================
+   DOCUMENT DETAIL
+   ============================================================ */
+const DocDetail = {
+  async open(id){
+    State.currentDocId = id;
+    Router.go("doc-detail");
+    const el = document.getElementById("doc-detail-body");
+    el.innerHTML = `<div class="card card-pad"><div class="skeleton sk-block"></div></div>`;
+    try {
+      const doc = await API.document(id);
+      document.getElementById("doc-detail-breadcrumb").textContent = doc.filename;
+      let mines = {items:[], total:0};
+      try { mines = await API.mines({document_id:id, limit:50}); } catch(e){}
+      let reports = [];
+      try { reports = await API.reports(id); } catch(e){}
+
+      el.innerHTML = `
+        <div class="page-head"><div><h1>${doc.filename}</h1><p>Document #${doc.id} · ${doc.file_type||"unknown type"}</p></div>
+          <div class="flex gap-8">
+            ${isAdmin() && doc.status==="uploaded" ? `<button class="btn primary" onclick="Documents.extract(${doc.id}).then(()=>DocDetail.open(${doc.id}))">Process</button>` : ""}
+            ${isAdmin() && doc.status==="extracted" ? `<button class="btn saffron" onclick="Reports.generate(${doc.id})">Generate Report</button>` : ""}
+          </div>
+        </div>
+        <div class="grid four">
+          <div class="kpi-card c1"><div class="label">Status</div><div style="margin-top:6px;">${UI.statusBadge(doc.status)}</div></div>
+          <div class="kpi-card c2"><div class="label">Total Rows</div><div class="value">${doc.total_rows??"N/A"}</div></div>
+          <div class="kpi-card c3"><div class="label">Extracted Rows</div><div class="value">${doc.extracted_rows??"N/A"}</div></div>
+          <div class="kpi-card c4"><div class="label">Sheet</div><div class="value" style="font-size:16px;">${doc.sheet_name||"N/A"}</div></div>
+        </div>
+        ${doc.error_message ? `<div class="banner error mt-16"><div><b>Processing Error</b>${doc.error_message}</div></div>` : ""}
+        <div class="tabs mt-20">
+          <button class="tab-btn active" data-t="overview" onclick="DocDetail.tab('overview')">Overview</button>
+          <button class="tab-btn" data-t="extracted" onclick="DocDetail.tab('extracted')">Extracted Data</button>
+          <button class="tab-btn" data-t="reports" onclick="DocDetail.tab('reports')">Reports</button>
+          <button class="tab-btn" data-t="meta" onclick="DocDetail.tab('meta')">Metadata</button>
+        </div>
+        <div id="dd-tab-overview" class="dd-tab">
+          <div class="card card-pad">
+            <h3>Processing Timeline</h3>
+            <table class="mt-12"><tbody>
+              <tr><td>Uploaded</td><td>${UI.fmtDate(doc.uploaded_at)}</td></tr>
+              <tr><td>Processed</td><td>${UI.fmtDate(doc.processed_at)}</td></tr>
+              <tr><td>Uploaded By</td><td>${doc.uploaded_by_email || "—"}</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div id="dd-tab-extracted" class="dd-tab" style="display:none;">
+          <div class="card">
+            ${mines.items.length ? `<div class="table-wrap table-scroll"><table>
+              <thead><tr><th>Mine</th><th>State</th><th>District</th><th class="num">Production (MT)</th><th>Owner</th><th>Validation</th><th></th></tr></thead>
+              <tbody>${mines.items.map(m=>`
+                <tr><td>${m.mine_name}</td><td>${m.state_ut||"—"}</td><td>${m.district||"—"}</td>
+                  <td class="num">${UI.fmtNum(m.production_mt)}</td><td>${m.owner_short||"—"}</td>
+                  <td>${UI.statusBadge(m.validation_status)}</td>
+                  <td><button class="btn sm" onclick="DocDetail.showEvidence(${m.id}, '${(m.mine_name||"").replace(/'/g,"")}')">Evidence</button></td>
+                </tr>`).join("")}</tbody></table></div>`
+              : `<div class="empty-state"><div class="icon">📋</div><div class="msg">No extracted records for this document yet.</div></div>`}
+          </div>
+        </div>
+        <div id="dd-tab-reports" class="dd-tab" style="display:none;">
+          <div class="card">
+            ${reports.length ? `<div class="table-wrap"><table><thead><tr><th>Report</th><th>Status</th><th>Generated</th><th>Actions</th></tr></thead>
+            <tbody>${reports.map(r=>`<tr><td>${r.title||"Report #"+r.id}</td><td>${UI.statusBadge(r.status)}</td><td>${UI.fmtDate(r.created_at)}</td>
+              <td><button class="btn sm" onclick="ReportDetail.open(${r.id})">View</button></td></tr>`).join("")}</tbody></table></div>`
+              : `<div class="empty-state"><div class="icon">📑</div><div class="msg">No reports have been generated for this document.</div></div>`}
+          </div>
+        </div>
+        <div id="dd-tab-meta" class="dd-tab" style="display:none;">
+          <div class="card card-pad"><pre class="mono" style="white-space:pre-wrap;">${JSON.stringify(doc, null, 2)}</pre></div>
+        </div>
+      `;
+    } catch(e){
+      el.innerHTML = `<div class="banner error"><div><b>Unable to load document</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  },
+  tab(name){
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.t===name));
+    document.querySelectorAll(".dd-tab").forEach(t=>t.style.display = t.id === "dd-tab-"+name ? "block" : "none");
+  },
+  async showEvidence(mineId, mineName){
+    UI.openModal(`<div class="modal-head"><h3>Evidence &amp; Traceability — ${mineName}</h3><button class="modal-close" onclick="UI.closeModal()">×</button></div><div class="modal-body" id="evidence-modal-body"><div class="skeleton sk-block"></div></div>`);
+    try {
+      const ev = await API.mineEvidence(mineId);
+      const body = document.getElementById("evidence-modal-body");
+      if (!ev.length){ body.innerHTML = `<div class="empty-state"><div class="icon">🔗</div><div class="msg">No evidence rows found for this record.</div></div>`; return; }
+      body.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Sheet</th><th>Row</th><th>Column</th><th>Raw Value</th><th>Confidence</th></tr></thead>
+        <tbody>${ev.map(e=>`
+          <tr><td>${e.sheet_name||"—"}</td><td>${e.row_number??"—"}</td><td class="mono">${e.column_name||"—"}</td><td>${e.raw_value??"—"}</td><td>${e.confidence!=null?(e.confidence*100).toFixed(0)+"%":"N/A"}</td></tr>
+        `).join("")}</tbody></table></div>
+        <div class="evidence-chain mt-16">
+          <div class="node">Document</div><div class="arrow">→</div><div class="node">Sheet</div><div class="arrow">→</div>
+          <div class="node">Row</div><div class="arrow">→</div><div class="node">Column</div><div class="arrow">→</div>
+          <div class="node">Raw Value</div><div class="arrow">→</div><div class="node">Validation</div>
+        </div>`;
+    } catch(e){
+      document.getElementById("evidence-modal-body").innerHTML = `<div class="banner error"><div>${UI.errorMsg(e)}</div></div>`;
+    }
+  }
+};
+
+/* ============================================================
+   DATA EXPLORER
+   ============================================================ */
+let explorerDebounceTimer = null;
+const Explorer = {
+  async init(){
+    if (!document.getElementById("ex-state").dataset.loaded){
+      try {
+        const a = await API.analytics();
+        const sel = document.getElementById("ex-state");
+        a.by_state.forEach(s=>{ sel.insertAdjacentHTML("beforeend", `<option value="${s.state_ut}">${s.state_ut}</option>`); });
+        sel.dataset.loaded = "1";
+      } catch(e){}
+    }
+    this.load();
+  },
+  debouncedLoad(){ clearTimeout(explorerDebounceTimer); explorerDebounceTimer = setTimeout(()=>Explorer.load(), 350); },
+  async load(){
+    const el = document.getElementById("explorer-table");
+    el.innerHTML = `<div class="card-pad"><div class="skeleton sk-block"></div></div>`;
+    const params = {
+      limit: State.explorerPageSize, offset: State.explorerPage*State.explorerPageSize,
+      q: document.getElementById("ex-q").value || undefined,
+      state_ut: document.getElementById("ex-state").value || undefined,
+      coal_or_lignite: document.getElementById("ex-coal").value || undefined,
+      validation_status: document.getElementById("ex-status").value || undefined,
+    };
+    Object.keys(params).forEach(k=>{ if(params[k]===undefined) delete params[k]; });
+    try {
+      const res = await API.mines(params);
+      State.explorerTotal = res.total;
+      if (!res.items.length){
+        el.innerHTML = `<div class="empty-state"><div class="icon">🔎</div><div class="msg">No records match your search.</div></div>`;
+        return;
+      }
+      const totalPages = Math.max(1, Math.ceil(res.total / State.explorerPageSize));
+      el.innerHTML = `<div class="table-wrap table-scroll"><table>
+        <thead><tr><th>Mine Name</th><th>State</th><th>District</th><th>Owner</th><th>Type</th><th class="num">Production (MT)</th><th>Validation</th><th>Confidence</th><th></th></tr></thead>
+        <tbody>${res.items.map(m=>`
+          <tr><td>${m.mine_name}</td><td>${m.state_ut||"—"}</td><td>${m.district||"—"}</td><td>${m.owner_short||"—"}</td>
+            <td>${m.mine_type||"—"}</td><td class="num">${UI.fmtNum(m.production_mt)}</td>
+            <td>${UI.statusBadge(m.validation_status)}</td><td>${m.confidence!=null?(m.confidence*100).toFixed(0)+"%":"N/A"}</td>
+            <td><button class="btn sm" onclick="DocDetail.showEvidence(${m.id}, '${(m.mine_name||"").replace(/'/g,"")}')">Evidence</button></td>
+          </tr>`).join("")}</tbody></table></div>
+        <div class="flex-between card-pad" style="border-top:1px solid var(--grey-100);">
+          <span class="text-sm text-muted">Showing ${res.items.length} of ${res.total} records — page ${State.explorerPage+1} of ${totalPages}</span>
+          <div class="flex gap-8">
+            <button class="btn sm" ${State.explorerPage===0?"disabled":""} onclick="Explorer.page(-1)">← Prev</button>
+            <button class="btn sm" ${State.explorerPage+1>=totalPages?"disabled":""} onclick="Explorer.page(1)">Next →</button>
+          </div>
+        </div>`;
+    } catch(e){
+      el.innerHTML = `<div class="banner error card-pad"><div><b>Unable to load records</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  },
+  page(dir){ State.explorerPage = Math.max(0, State.explorerPage+dir); this.load(); }
+};
+
+/* ============================================================
+   ANALYTICS
+   ============================================================ */
+const Analytics = {
+  async init(){
+    const sel = document.getElementById("analytics-doc-filter");
+    if (!sel.dataset.loaded){
+      try {
+        const docs = await API.documents();
+        docs.filter(d=>d.status==="extracted").forEach(d=>sel.insertAdjacentHTML("beforeend", `<option value="${d.id}">${d.filename}</option>`));
+        sel.dataset.loaded = "1";
+      } catch(e){}
+    }
+    this.load();
+  },
+  async load(){
+    const el = document.getElementById("analytics-body");
+    el.innerHTML = `<div class="card card-pad"><div class="skeleton sk-block"></div></div>`;
+    const docId = document.getElementById("analytics-doc-filter").value || null;
+    try {
+      const a = await API.analytics(docId);
+      if (!a.totals.mine_count){
+        el.innerHTML = `<div class="card"><div class="empty-state"><div class="icon">📊</div><div class="msg">No analytics data available.</div><div class="sub">Upload and process a document to see analytics.</div></div></div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div class="grid four">
+          <div class="kpi-card c1"><div class="label">Total Production</div><div class="value">${UI.fmtNum(a.totals.total_production_mt)}</div><div class="sub">Million Tonnes</div></div>
+          <div class="kpi-card c2"><div class="label">Mine Records</div><div class="value">${a.totals.mine_count}</div></div>
+          <div class="kpi-card c3"><div class="label">Avg Production</div><div class="value">${UI.fmtNum(a.totals.avg_production_mt)}</div></div>
+          <div class="kpi-card c4"><div class="label">Validation Coverage</div><div class="value">${a.validation.total_mines ? Math.round(a.validation.by_status.VERIFIED/a.validation.total_mines*100)+"%" : "N/A"}</div></div>
+        </div>
+        <div class="grid two mt-20">
+          <div class="card card-pad"><h3>Ownership Distribution</h3><canvas id="c-ownership"></canvas></div>
+          <div class="card card-pad"><h3>Coal vs Lignite</h3><canvas id="c-coal"></canvas></div>
+        </div>
+        <div class="grid two mt-20">
+          <div class="card card-pad"><h3>Mine Type Distribution</h3><canvas id="c-minetype"></canvas></div>
+          <div class="card card-pad"><h3>Validation Status</h3><canvas id="c-validation"></canvas></div>
+        </div>
+        <div class="card card-pad mt-20"><h3>State-wise Production</h3><canvas id="c-state" height="90"></canvas></div>
+        <div class="card card-pad mt-20"><h3>Top Producing Mines</h3><canvas id="c-topmines" height="100"></canvas></div>
+        <div class="grid two mt-20">
+          <div class="card card-pad">
+            <h3>Executive Insights</h3>
+            <div class="mt-12">
+              ${a.by_state.length ? `<div class="banner info"><div><b>Highest production contribution</b>${a.by_state[0].state_ut} accounts for ${UI.fmtNum(a.by_state[0].total_production_mt)} MT across ${a.by_state[0].mine_count} mine(s). Source: Analytics API.</div></div>` : ""}
+              ${a.validation.total_mines ? `<div class="banner ${a.validation.by_status.ERROR>0?'warning':'info'}"><div><b>Validation issue concentration</b>${a.validation.by_status.NEEDS_REVIEW+a.validation.by_status.WARNING+a.validation.by_status.ERROR} of ${a.validation.total_mines} record(s) require review. Source: Validation API.</div></div>` : ""}
+            </div>
+          </div>
+          <div class="card card-pad">
+            <h3>Data Quality Metrics</h3>
+            <table class="mt-8"><tbody>
+              <tr><td>Avg. Confidence</td><td class="num">${a.validation.avg_confidence!=null ? (a.validation.avg_confidence*100).toFixed(0)+"%" : "Not yet measured"}</td></tr>
+              <tr><td>Min. Confidence</td><td class="num">${a.validation.min_confidence!=null ? (a.validation.min_confidence*100).toFixed(0)+"%" : "Not yet measured"}</td></tr>
+              <tr><td>Extraction Accuracy</td><td class="num text-muted">Not yet measured</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      `;
+      this.renderCharts(a);
+    } catch(e){
+      el.innerHTML = `<div class="banner error card-pad"><div><b>Unable to load analytics</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  },
+  renderCharts(a){
+    const palette = ["#123a6b","#d97a1f","#1e7d3c","#9a3fb0","#c23636","#1e9aa8","#6b4fa0","#b08a1e"];
+    new Chart(document.getElementById("c-ownership"), { type:"pie",
+      data:{ labels:a.ownership_distribution.map(o=>o.ownership_label), datasets:[{data:a.ownership_distribution.map(o=>o.mine_count), backgroundColor:palette}]},
+      options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:11}}}}} });
+    new Chart(document.getElementById("c-coal"), { type:"pie",
+      data:{ labels:a.coal_vs_lignite.map(o=>o.coal_or_lignite||"Unknown"), datasets:[{data:a.coal_vs_lignite.map(o=>o.mine_count), backgroundColor:palette}]},
+      options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:11}}}}} });
+    new Chart(document.getElementById("c-minetype"), { type:"pie",
+      data:{ labels:a.mine_type_distribution.map(o=>o.mine_type||"Unknown"), datasets:[{data:a.mine_type_distribution.map(o=>o.mine_count), backgroundColor:palette}]},
+      options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:11}}}}} });
+    const vs = a.validation.by_status;
+    new Chart(document.getElementById("c-validation"), { type:"doughnut",
+      data:{ labels:Object.keys(vs), datasets:[{data:Object.values(vs), backgroundColor:["#1e7d3c","#9a6300","#d97a1f","#a72020"]}]},
+      options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:11}}}}} });
+    new Chart(document.getElementById("c-state"), { type:"bar",
+      data:{ labels:a.by_state.slice(0,12).map(s=>s.state_ut), datasets:[{label:"Production (MT)", data:a.by_state.slice(0,12).map(s=>s.total_production_mt), backgroundColor:a.by_state.slice(0,12).map((_,i)=>palette[i%palette.length])}]},
+      options:{plugins:{legend:{display:false}}} });
+    new Chart(document.getElementById("c-topmines"), { type:"bar",
+      data:{ labels:a.top_mines.slice(0,12).map(m=>m.mine_name), datasets:[{label:"Production (MT)", data:a.top_mines.slice(0,12).map(m=>m.production_mt), backgroundColor:a.top_mines.slice(0,12).map((_,i)=>palette[(i+2)%palette.length])}]},
+      options:{indexAxis:"y",plugins:{legend:{display:false}}} });
+  }
+};
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+const Reports = {
+  async load(){
+    const el = document.getElementById("reports-list");
+    el.innerHTML = `<div class="card card-pad"><div class="skeleton sk-block"></div></div>`;
+    try {
+      const reports = await API.reports();
+      if (!reports.length){
+        el.innerHTML = `<div class="card"><div class="empty-state"><div class="icon">📑</div><div class="msg">No reports have been generated.</div></div></div>`;
+        return;
+      }
+      el.innerHTML = `<div class="card"><div class="table-wrap"><table>
+        <thead><tr><th>Report</th><th>Document ID</th><th>Status</th><th>Generated</th><th>Actions</th></tr></thead>
+        <tbody>${reports.map(r=>`
+          <tr><td>${r.title||"Report #"+r.id}</td><td class="mono">#${r.document_id||"—"}</td><td>${UI.statusBadge(r.status)}</td><td class="text-sm">${UI.fmtDate(r.created_at)}</td>
+            <td class="flex gap-8">
+              <button class="btn sm" onclick="ReportDetail.open(${r.id})">View</button>
+              ${r.has_pdf ? `<a class="btn sm" href="${API.reportPdfUrl(r.id)}" target="_blank">PDF</a>` : ""}
+              ${r.has_docx ? `<a class="btn sm" href="${API.reportDocxUrl(r.id)}" target="_blank">DOCX</a>` : ""}
+            </td>
+          </tr>`).join("")}</tbody></table></div></div>`;
+    } catch(e){
+      el.innerHTML = `<div class="banner error card-pad"><div><b>Unable to load reports</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  },
+  async openGenerateModal(){
+    let docs = [];
+    try { docs = (await API.documents()).filter(d=>d.status==="extracted"); } catch(e){}
+    UI.openModal(`
+      <div class="modal-head"><h3>Generate Report</h3><button class="modal-close" onclick="UI.closeModal()">×</button></div>
+      <div class="modal-body">
+        ${docs.length ? `
+          <div class="field"><label>Select processed document</label>
+            <select id="gen-doc-select">${docs.map(d=>`<option value="${d.id}">${d.filename} (#${d.id})</option>`).join("")}</select>
+          </div>
+          <div class="text-sm text-muted">The report is generated from validated data already in the database — sections, period selection and other report options are not yet exposed by the backend API (Not available yet).</div>
+          <button class="btn primary mt-16" onclick="Reports.generateFromModal()">Generate Report</button>
+        ` : `<div class="empty-state"><div class="icon">📑</div><div class="msg">No processed documents available.</div><div class="sub">Upload and process a document first.</div></div>`}
+      </div>`);
+  },
+  generateFromModal(){
+    const id = document.getElementById("gen-doc-select").value;
+    UI.closeModal();
+    this.generate(id);
+  },
+  async generate(docId){
+    UI.toast("Generating report — analyzing data, rendering charts…", "info");
+    try {
+      const report = await API.generateReport(docId);
+      UI.toast("Report generated successfully.", "success");
+      ReportDetail.open(report.id);
+    } catch(e){ UI.toast(UI.errorMsg(e), "error"); }
+  }
+};
+
+const ReportDetail = {
+  async open(id){
+    State.currentReportId = id;
+    Router.go("report-detail");
+    const el = document.getElementById("report-detail-body");
+    el.innerHTML = `<div class="card card-pad"><div class="skeleton sk-block"></div></div>`;
+    try {
+      const r = await API.report(id);
+      const a = r.analytics;
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-pad" style="border-bottom:3px solid var(--saffron);">
+            <div class="text-sm text-muted">Government of India · Ministry of Coal · CMPDI / Coal India Limited</div>
+            <h1>${r.title||"Report #"+r.id}</h1>
+            <div class="flex gap-12 text-sm text-muted mt-8">
+              <span>Document Reference: #${r.document_id}</span><span>·</span>
+              <span>Generated: ${UI.fmtDate(r.created_at)}</span><span>·</span>
+              <span>Period: ${r.dataset_period||"N/A"}</span>
+            </div>
+            <div class="flex gap-8 mt-16">
+              <a class="btn primary" href="${API.reportPdfUrl(r.id)}" target="_blank">Download PDF</a>
+              <a class="btn" href="${API.reportDocxUrl(r.id)}" target="_blank">Download DOCX</a>
+            </div>
+          </div>
+          <div class="card-pad">
+            <div class="banner warning"><div><b>AI-assisted output</b>Verify against source records before official submission. Narrative source: ${r.narrative_source||"N/A"}.</div></div>
+            ${a ? `
+            <h3>Executive Summary</h3>
+            <div class="grid four mt-8">
+              <div class="kpi-card c1"><div class="label">Total Production</div><div class="value">${UI.fmtNum(a.totals.total_production_mt)}</div></div>
+              <div class="kpi-card c2"><div class="label">Mine Records</div><div class="value">${a.totals.mine_count}</div></div>
+              <div class="kpi-card c3"><div class="label">Verified</div><div class="value">${a.validation.by_status.VERIFIED}</div></div>
+              <div class="kpi-card c4"><div class="label">Needs Review</div><div class="value">${a.validation.by_status.NEEDS_REVIEW}</div></div>
+            </div>
+            <h3 class="mt-20">Key Findings</h3>
+            <table class="mt-8"><thead><tr><th>State/UT</th><th class="num">Mines</th><th class="num">Production (MT)</th></tr></thead>
+              <tbody>${a.by_state.slice(0,10).map(s=>`<tr><td>${s.state_ut}</td><td class="num">${s.mine_count}</td><td class="num">${UI.fmtNum(s.total_production_mt)}</td></tr>`).join("")}</tbody></table>
+            ` : `<div class="empty-state"><div class="icon">📊</div><div class="msg">No analytics snapshot available for this report.</div></div>`}
+            ${r.narrative && r.narrative.summary ? `<h3 class="mt-20">AI-Generated Narrative</h3><div class="card-pad" style="background:var(--grey-50);border-radius:6px;">${(r.narrative.summary||"").toString()}</div>` : ""}
+            <div class="footer-note">AI-assisted output — verify against source records before official submission.</div>
+          </div>
+        </div>`;
+    } catch(e){
+      el.innerHTML = `<div class="banner error"><div><b>Unable to load report</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  }
+};
+
+/* ============================================================
+   AI ASSISTANT
+   ============================================================ */
+const SUGGESTED_QUESTIONS = [
+  "Which state has the highest recorded production?",
+  "Summarize the latest processed document.",
+  "Which mines require review?",
+  "Compare production by ownership.",
+  "Show validation issues."
+];
+const Assistant = {
+  init(){
+    document.getElementById("chat-suggest").innerHTML = SUGGESTED_QUESTIONS.map(q=>`<button class="pill" onclick="Assistant.ask('${q.replace(/'/g,"")}')">${q}</button>`).join("");
+    this.renderHistory();
+  },
+  onKey(e){ if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); this.send(); } },
+  attachImage(file){
+    if (!file) return;
+    State.chatImage = file;
+    const prev = document.getElementById("chat-image-preview");
+    prev.style.display = "block";
+    prev.innerHTML = `📎 ${file.name} <button class="btn sm" onclick="Assistant.clearImage()">Remove</button>`;
+  },
+  clearImage(){ State.chatImage = null; document.getElementById("chat-image-input").value=""; document.getElementById("chat-image-preview").style.display="none"; },
+  send(){
+    const input = document.getElementById("chat-input");
+    const q = input.value.trim();
+    if (!q && !State.chatImage) return;
+    input.value = "";
+    this.ask(q);
+  },
+  renderHistory(){
+    const el = document.getElementById("chat-hist");
+    if (!State.chatHistory.length){ el.innerHTML = `<div class="text-sm text-muted" style="padding:8px;">Your questions this session will appear here.</div>`; return; }
+    el.innerHTML = State.chatHistory.map((h,i)=>`<div class="qi" onclick="Assistant.scrollTo(${i})">${h.question.slice(0,60)}</div>`).join("");
+  },
+  scrollTo(i){ const el = document.querySelectorAll("#chat-msgs .msg.user")[i]; if (el) el.scrollIntoView({behavior:"smooth"}); },
+  appendMsg(role, html){
+    const wrap = document.getElementById("chat-msgs");
+    if (wrap.querySelector(".empty-state")) wrap.innerHTML = "";
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.innerHTML = html;
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+    return div;
+  },
+  async ask(question){
+    this.appendMsg("user", `<div class="bubble">${question || "(image attached)"}</div>`);
+    const loadingDiv = this.appendMsg("ai", `<div class="bubble"><div class="typing"><span></span><span></span><span></span></div> Analyzing source records…</div>`);
+    document.getElementById("chat-send-btn").disabled = true;
+
+    const historyPayload = State.chatHistory.slice(-5).map(h=>({question:h.question, answer:h.answer}));
+    try {
+      let res;
+      if (State.chatImage){
+        const fd = new FormData();
+        fd.append("image", State.chatImage);
+        fd.append("question", question||"");
+        fd.append("history", JSON.stringify(historyPayload));
+        res = await API.assistantAskImage(fd);
+        this.clearImage();
+      } else {
+        res = await API.assistantAsk({ question, history: historyPayload });
+      }
+      State.chatHistory.push({question: res.question, answer: res.answer});
+      this.renderHistory();
+
+      let sourcesHtml = "";
+      if (res.sources && res.sources.length){
+        sourcesHtml = `<div class="src-box"><b>Sources (${res.sources.length}):</b><br>${res.sources.slice(0,5).map(s=>
+          `Doc #${s.document_id}${s.sheet_name?` · ${s.sheet_name}`:""}${s.row_number!=null?` · Row ${s.row_number}`:""}${s.column_name?` · ${s.column_name}`:""}${s.confidence!=null?` · ${(s.confidence*100).toFixed(0)}% confidence`:""}`
+        ).join("<br>")}</div>`;
+      } else if (res.source_availability === "unavailable"){
+        sourcesHtml = `<div class="src-box text-muted">No source evidence was found for this specific question.</div>`;
+      } else if (res.source_availability === "not_applicable" && res.warnings && res.warnings.length){
+        sourcesHtml = `<div class="src-box text-muted">${res.warnings.join(" ")}</div>`;
+      }
+
+      loadingDiv.innerHTML = `<div class="bubble">${res.answer}</div>
+        ${res.image_extracted_text ? `<div class="src-box"><b>Text extracted from image:</b><br>${res.image_extracted_text}</div>` : ""}
+        ${sourcesHtml}
+        <div class="meta">${res.narrative_source==="grok"||res.narrative_source==="ai"?"AI-generated narrative":"Database-derived"} · ${new Date().toLocaleTimeString("en-IN")}</div>`;
+    } catch(e){
+      loadingDiv.innerHTML = `<div class="bubble">AI service is temporarily unavailable. Please try again. <br><span class="text-sm text-muted">${UI.errorMsg(e)}</span></div>`;
+    } finally {
+      document.getElementById("chat-send-btn").disabled = false;
+    }
+  }
+};
+
+/* ============================================================
+   WORD CLOUD
+   ============================================================ */
+const WordCloud = {
+  async load(){
+    const el = document.getElementById("wordcloud-body");
+    el.innerHTML = `<div class="skeleton sk-block"></div>`;
+    try {
+      const res = await API.wordcloud();
+      if (!res.terms.length){
+        el.innerHTML = `<div class="empty-state"><div class="icon">☁️</div><div class="msg">No word cloud data available.</div><div class="sub">${res.message || "Upload and process a document to see frequent terms."}</div></div>`;
+        return;
+      }
+      const max = Math.max(...res.terms.map(t=>t.count));
+      el.innerHTML = `<div class="text-sm text-muted mb-8">Derived from extracted document field values (mine names, states, districts, owners) — source: ${res.source}.</div>
+        <div class="mt-16">${res.terms.map(t=>{
+          const size = 12 + Math.round((t.count/max)*26);
+          const colors = ["#123a6b","#d97a1f","#1e7d3c","#9a3fb0","#c23636","#1e9aa8"];
+          const color = colors[t.term.length % colors.length];
+          return `<span class="wc-tag" style="font-size:${size}px;color:${color};" title="${t.count} occurrence(s)">${t.term}</span>`;
+        }).join("")}</div>`;
+    } catch(e){
+      el.innerHTML = `<div class="banner error"><div><b>Unable to load word cloud</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  }
+};
+
+/* ============================================================
+   TOPIC INTELLIGENCE
+   ============================================================ */
+const Topics = {
+  async load(){
+    const el = document.getElementById("topics-body");
+    el.innerHTML = `<div class="skeleton sk-block"></div>`;
+    try {
+      const res = await API.topics();
+      if (!res.topics.length){
+        el.innerHTML = `<div class="empty-state"><div class="icon">🧭</div><div class="msg">No topic data available.</div><div class="sub">${res.message || "Upload and process a document to see identified topics."}</div></div>`;
+        return;
+      }
+      el.innerHTML = `<div class="text-sm text-muted mb-8">Source: ${res.source}. Not AI-generated — computed deterministically from extracted fields.</div>
+        <div class="table-wrap mt-12"><table><thead><tr><th>Topic</th><th class="num">Frequency</th><th>Documents</th><th>Keywords</th></tr></thead>
+        <tbody>${res.topics.map(t=>`<tr><td><b>${t.topic}</b></td><td class="num">${t.frequency}</td><td>${t.documents??"—"}</td><td class="text-sm">${(t.keywords||[]).join(", ")||"—"}</td></tr>`).join("")}</tbody></table></div>`;
+    } catch(e){
+      el.innerHTML = `<div class="banner error"><div><b>Unable to load topics</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  }
+};
+
+/* ============================================================
+   HISTORY (own activity) / USER ACTIVITY (admin, platform-wide)
+   ============================================================ */
+function renderAuditTable(items){
+  if (!items.length) return `<div class="empty-state"><div class="icon">🕘</div><div class="msg">No activity recorded.</div></div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Document</th><th>Report</th><th>Details</th></tr></thead>
+    <tbody>${items.map(a=>`<tr><td class="text-sm">${UI.fmtDate(a.created_at)}</td><td>${a.user_email||"—"}</td><td>${UI.statusBadge(a.action)}</td><td class="mono">${a.document_id?"#"+a.document_id:"—"}</td><td class="mono">${a.report_id?"#"+a.report_id:"—"}</td><td class="text-sm">${a.details||"—"}</td></tr>`).join("")}</tbody></table></div>`;
+}
+const History = {
+  async load(){
+    document.getElementById("history-title").textContent = "My History";
+    document.getElementById("history-sub").textContent = "Your own activity only — read-only.";
+    const el = document.getElementById("history-body");
+    el.innerHTML = `<div class="skeleton sk-block"></div>`;
+    try {
+      const res = await API.myHistory(100, 0);
+      el.innerHTML = renderAuditTable(res.items);
+    } catch(e){
+      el.innerHTML = `<div class="banner error"><div><b>Unable to load history</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  }
+};
+const UserActivity = {
+  async load(){
+    const el = document.getElementById("useractivity-body");
+    if (!isAdmin()){
+      el.innerHTML = `<div class="banner error"><div><b>Access denied</b>User Activity is an administrator-only page. (The server would also return HTTP 403 if this were called directly.)</div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="skeleton sk-block"></div>`;
+    try {
+      const res = await API.adminActivity({limit:100, offset:0});
+      el.innerHTML = `<div class="text-sm text-muted mb-8">Platform-wide activity — ${res.total} total event(s).</div>` + renderAuditTable(res.items);
+    } catch(e){
+      el.innerHTML = `<div class="banner error"><div><b>Unable to load user activity</b>${UI.errorMsg(e)}</div></div>`;
+    }
+  }
+};
+
+/* ============================================================
+   SETTINGS / PROFILE / NOTIFICATIONS
+   ============================================================ */
+const Settings = {
+  load(){
+    document.getElementById("settings-body").innerHTML = `
+      <h3>Your Role</h3>
+      <p class="text-sm">You are signed in as <span class="role-badge ${isAdmin()?'admin':'viewer'}" style="margin-left:4px;">${isAdmin()?'Administrator':'User / Viewer'}</span>.</p>
+      <p class="text-sm text-muted">This is your real, server-assigned role — returned by <span class="mono">GET /api/auth/me</span> and enforced on every request. It cannot be changed from this browser; contact a platform administrator if your role needs to change.</p>
+      <div class="banner info mt-20"><div><b>Role enforcement</b>Admin-only actions (upload, processing, report generation, user activity, system health) return HTTP 403 from the server for any non-admin account, regardless of what this page displays.</div></div>`;
+  }
+};
+const Profile = {
+  load(){
+    document.getElementById("profile-body").innerHTML = `
+      <table><tbody>
+        <tr><td>Email</td><td>${State.user.email}</td></tr>
+        <tr><td>Account Created</td><td>${UI.fmtDate(State.user.created_at)}</td></tr>
+        <tr><td>Role</td><td>${isAdmin()?"Administrator":"User / Viewer"}</td></tr>
+      </tbody></table>
+      <button class="btn danger mt-16" onclick="Auth.logout()">Sign Out</button>`;
+  }
+};
+const Notifications = {
+  async refreshDot(){
+    try {
+      const items = await API.notifications();
+      State.notifications = items;
+      const unread = items.filter(n=>!n.is_read).length;
+      document.getElementById("notif-dot").style.display = unread > 0 ? "block" : "none";
+    } catch(e){ /* silent — bell just won't show a dot */ }
+  }
+};
+UI.openNotifications = async function(){
+  UI.openModal(`<div class="modal-head"><h3>Notifications</h3><button class="modal-close" onclick="UI.closeModal()">×</button></div>
+    <div class="modal-body" id="notif-modal-body"><div class="skeleton sk-block"></div></div>`);
+  const body = document.getElementById("notif-modal-body");
+  try {
+    const items = await API.notifications();
+    State.notifications = items;
+    document.getElementById("notif-dot").style.display = items.some(n=>!n.is_read) ? "block" : "none";
+    if (!items.length){
+      body.innerHTML = `<div class="empty-state"><div class="icon">🔔</div><div class="msg">No notifications.</div><div class="sub">You'll see updates here for document processing and report generation.</div></div>`;
+      return;
+    }
+    body.innerHTML = `<div class="flex-between mb-8"><span class="text-sm text-muted">${items.filter(n=>!n.is_read).length} unread</span><button class="btn sm" onclick="Notifications.markAllRead()">Mark all read</button></div>
+      ${items.map(n=>`<div class="card-pad" style="border-bottom:1px solid var(--grey-100);${n.is_read?'':'background:var(--info-bg);'}">
+        <div class="flex-between"><span class="badge ${n.type==='error'?'error':(n.type==='success'?'success':'info')}">${n.type}</span><span class="text-sm text-muted">${UI.fmtDate(n.created_at)}</span></div>
+        <div class="mt-8">${n.message}</div>
+        ${n.is_read?"":`<button class="btn sm mt-8" onclick="Notifications.markRead(${n.id})">Mark read</button>`}
+      </div>`).join("")}`;
+  } catch(e){
+    body.innerHTML = `<div class="banner error"><div>${UI.errorMsg(e)}</div></div>`;
+  }
+};
+Notifications.markRead = async function(id){
+  try { await API.markNotificationRead(id); UI.openNotifications(); } catch(e){ UI.toast(UI.errorMsg(e), "error"); }
+};
+Notifications.markAllRead = async function(){
+  try { await API.markAllNotificationsRead(); UI.openNotifications(); } catch(e){ UI.toast(UI.errorMsg(e), "error"); }
+};
+
+/* ============================================================
+   GLOBAL BACKEND POLLING
+   ============================================================ */
+setInterval(()=>{ if (State.user) Health.checkAndReflect(); }, 60000);
+</script>
+</body>
+</html>

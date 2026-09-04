@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mineintel
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    # Installs the actual Tesseract OCR system binary on Render's native
+    # Python runtime (the `pytesseract` PyPI package is only a wrapper — it
+    # calls out to this binary and fails at runtime without it). This uses
+    # Render's native-runtime "Apt Packages" feature, so no Docker/Aptfile
+    # is needed and the existing build/start commands are unchanged.
+    aptPackages:
+      - tesseract-ocr
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GROK_API_KEY
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
